@@ -1,60 +1,49 @@
--- DEX HUB | UI CLIENT-SIDE | COMPATÍVEL COM DELTA
+-- DEX HUB | FUNCIONAL VISUAL | DELTA OK
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
 
--- Função de drag (PC + Mobile)
-local function dragify(frame)
-	local dragging = false
-	local dragStart, startPos
-
-	frame.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-			dragging = true
-			dragStart = input.Position
-			startPos = frame.Position
+------------------------------------------------
+-- DRAG
+------------------------------------------------
+local function drag(frame)
+	local d, ds, sp
+	frame.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			d = true
+			ds = i.Position
+			sp = frame.Position
 		end
 	end)
-
-	frame.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-			dragging = false
+	frame.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			d = false
 		end
 	end)
-
-	UIS.InputChanged:Connect(function(input)
-		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
-		or input.UserInputType == Enum.UserInputType.Touch) then
-			local delta = input.Position - dragStart
-			frame.Position = UDim2.new(
-				startPos.X.Scale,
-				startPos.X.Offset + delta.X,
-				startPos.Y.Scale,
-				startPos.Y.Offset + delta.Y
-			)
+	UIS.InputChanged:Connect(function(i)
+		if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+			local delta = i.Position - ds
+			frame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y)
 		end
 	end)
 end
 
+------------------------------------------------
 -- GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "DexHubGUI"
-gui.Parent = player:WaitForChild("PlayerGui")
+------------------------------------------------
+local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.ResetOnSpawn = false
 
 -- Ícone
 local icon = Instance.new("TextButton", gui)
-icon.Size = UDim2.new(0,48,0,48)
-icon.Position = UDim2.new(0,20,0.5,-24)
+icon.Size = UDim2.new(0,50,0,50)
+icon.Position = UDim2.new(0,20,0.5,-25)
 icon.Text = "DEX"
 icon.TextScaled = true
 icon.BackgroundColor3 = Color3.fromRGB(255,255,0)
-icon.BorderSizePixel = 0
-
-dragify(icon)
+drag(icon)
 
 -- HUB
 local hub = Instance.new("Frame", gui)
@@ -62,54 +51,78 @@ hub.Size = UDim2.new(0,360,0,220)
 hub.Position = UDim2.new(0.5,-180,0.5,-110)
 hub.BackgroundColor3 = Color3.fromRGB(255,255,0)
 hub.Visible = false
-hub.BorderSizePixel = 0
+drag(hub)
 
-dragify(hub)
-
--- Abrir / fechar
 icon.MouseButton1Click:Connect(function()
 	hub.Visible = not hub.Visible
 end)
 
--- Título
+------------------------------------------------
+-- TITLE
+------------------------------------------------
 local title = Instance.new("TextLabel", hub)
 title.Size = UDim2.new(1,0,0,28)
 title.Text = "DEX HUB"
 title.BackgroundTransparency = 1
 title.TextScaled = true
-title.Font = Enum.Font.SourceSansBold
 
--- Sidebar
+------------------------------------------------
+-- SIDEBAR / MAIN
+------------------------------------------------
 local sidebar = Instance.new("Frame", hub)
 sidebar.Position = UDim2.new(0,0,0,28)
 sidebar.Size = UDim2.new(0,95,1,-28)
-sidebar.BackgroundColor3 = Color3.fromRGB(240,240,0)
+sidebar.BackgroundColor3 = Color3.fromRGB(230,230,0)
 
--- Main
 local main = Instance.new("Frame", hub)
 main.Position = UDim2.new(0,105,0,38)
 main.Size = UDim2.new(1,-115,1,-48)
 main.BackgroundColor3 = Color3.fromRGB(255,255,0)
-main.BorderSizePixel = 0
 
-local function clearMain()
-	for _,v in pairs(main:GetChildren()) do
-		v:Destroy()
+local function clear()
+	for _,v in pairs(main:GetChildren()) do v:Destroy() end
+end
+
+------------------------------------------------
+-- ESP VISUAL REAL (OBJETOS)
+------------------------------------------------
+local espObjects = {}
+
+local function setESP(color, state)
+	for _,v in pairs(espObjects) do v:Destroy() end
+	espObjects = {}
+
+	if not state then return end
+
+	for _,p in pairs(workspace:GetDescendants()) do
+		if p:IsA("BasePart") and p.Size.Magnitude > 5 then
+			local box = Instance.new("BoxHandleAdornment")
+			box.Adornee = p
+			box.Size = p.Size
+			box.Color3 = color
+			box.AlwaysOnTop = true
+			box.ZIndex = 5
+			box.Transparency = 0.6
+			box.Parent = gui
+			table.insert(espObjects, box)
+		end
 	end
 end
 
--- Switch
-local function switch(text, y)
+------------------------------------------------
+-- SWITCH
+------------------------------------------------
+local function makeSwitch(text, y, onToggle)
 	local label = Instance.new("TextLabel", main)
 	label.Text = text
-	label.Size = UDim2.new(0,120,0,28)
 	label.Position = UDim2.new(0,10,0,y)
+	label.Size = UDim2.new(0,140,0,28)
 	label.BackgroundTransparency = 1
 	label.TextScaled = true
 
 	local btn = Instance.new("TextButton", main)
+	btn.Position = UDim2.new(0,160,0,y)
 	btn.Size = UDim2.new(0,60,0,28)
-	btn.Position = UDim2.new(0,140,0,y)
 	btn.Text = "OFF"
 	btn.TextScaled = true
 	btn.BackgroundColor3 = Color3.fromRGB(255,0,0)
@@ -119,43 +132,44 @@ local function switch(text, y)
 		state = not state
 		btn.Text = state and "ON" or "OFF"
 		btn.BackgroundColor3 = state and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
-		print(text, state)
+		onToggle(state)
 	end)
 end
 
--- Menus
+------------------------------------------------
+-- MENUS
+------------------------------------------------
 local function espMenu()
-	clearMain()
-	switch("ESP Vermelho", 10)
-	switch("ESP Verde", 50)
+	clear()
+	makeSwitch("ESP Vermelho", 10, function(on)
+		setESP(Color3.fromRGB(255,0,0), on)
+	end)
+	makeSwitch("ESP Verde", 50, function(on)
+		setESP(Color3.fromRGB(0,255,0), on)
+	end)
 end
 
+local flying = false
 local function funcMenu()
-	clearMain()
-	switch("Voar", 10)
-	switch("Teleporte", 50)
+	clear()
+
+	makeSwitch("Voar (Camera)", 10, function(on)
+		flying = on
+	end)
+
+	makeSwitch("Teleporte (Camera)", 50, function(on)
+		if not on then return end
+		local mouse = player:GetMouse()
+		mouse.Button1Down:Once(function()
+			camera.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0,5,0))
+		end)
+	end)
 end
 
-local function infoMenu()
-	clearMain()
-	local info = Instance.new("TextLabel", main)
-	info.Size = UDim2.new(1,-10,1,-10)
-	info.Position = UDim2.new(0,5,0,5)
-	info.BackgroundTransparency = 1
-	info.TextWrapped = true
-	info.TextYAlignment = Enum.TextYAlignment.Top
-	info.TextScaled = true
-	info.Text =
-	"DEX HUB\n\n"..
-	"Compatível com Delta\n"..
-	"UI client-side\n"..
-	"Ícone e HUB arrastáveis\n"..
-	"Switch funcional\n\n"..
-	"Script base."
-end
-
--- Botões laterais
-local function side(text, y, func)
+------------------------------------------------
+-- SIDEBAR BUTTONS
+------------------------------------------------
+local function side(text, y, f)
 	local b = Instance.new("TextButton", sidebar)
 	b.Size = UDim2.new(1,-10,0,28)
 	b.Position = UDim2.new(0,5,0,y)
@@ -163,9 +177,27 @@ local function side(text, y, func)
 	b.TextScaled = true
 	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
 	b.TextColor3 = Color3.new(1,1,1)
-	b.MouseButton1Click:Connect(func)
+	b.MouseButton1Click:Connect(f)
 end
 
 side("ESP", 10, espMenu)
-side("Função", 44, funcMenu)
-side("Info", 78, infoMenu)
+side("Função", 45, funcMenu)
+side("Info", 80, function()
+	clear()
+	local t = Instance.new("TextLabel", main)
+	t.Size = UDim2.new(1,-10,1,-10)
+	t.Position = UDim2.new(0,5,0,5)
+	t.TextWrapped = true
+	t.TextScaled = true
+	t.BackgroundTransparency = 1
+	t.Text = "DEX HUB\n\nAgora as funções fazem AÇÃO VISUAL REAL.\nCompatível com Delta."
+end)
+
+------------------------------------------------
+-- VOAR CAMERA LOOP
+------------------------------------------------
+game:GetService("RunService").RenderStepped:Connect(function()
+	if flying then
+		camera.CFrame = camera.CFrame + Vector3.new(0,0.2,0)
+	end
+end)
